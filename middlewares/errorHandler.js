@@ -1,11 +1,15 @@
-// Custom Middleware for Error Handling
+const logger = require("../utils/logger");
+
 const errorHandler = (err, req, res, next) => {
-  console.error("❌ Error:", err); // ✅ Log the error for debugging
+  logger.error("Request failed", {
+    error: err,
+    method: req.method,
+    path: req.originalUrl,
+  });
 
-  let statusCode = err.statusCode || 500; // ✅ Default to internal server error
-  let message = err.message || "An unexpected error occurred.";
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "An unexpected error occurred";
 
-  // ✅ Categorize common errors and return clear messages
   switch (err.name) {
     case "ValidationError":
       statusCode = 400;
@@ -26,12 +30,11 @@ const errorHandler = (err, req, res, next) => {
       }
   }
 
-  // ✅ Hide sensitive details in production
-  if (process.env.NODE_ENV === "production") {
-    message = statusCode === 500 ? "Internal server error. Please try again later." : message;
+  if (process.env.NODE_ENV === "production" && statusCode === 500) {
+    message = "Internal server error. Please try again later.";
   }
 
-  res.status(statusCode).json({ message });
+  res.status(statusCode).json({ success: false, message });
 };
 
 module.exports = errorHandler;

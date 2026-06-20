@@ -1,12 +1,10 @@
 const Log = require("../models/Log");
 
 class LogService {
-  // ✅ تسجيل حدث جديد
   static async createLog(userId, action, status, message = "") {
     if (!userId || !action) {
-      throw new Error("يجب تحديد كل من userId و action");
+      throw new Error("Invalid log request");
     }
-    // التأكد من أن `action` و `status` صالحة
     const validActions = [
       "LOGIN",
       "LOGOUT",
@@ -18,19 +16,18 @@ class LogService {
     const validStatuses = ["SUCCESS", "FAILED"];
 
     if (!validActions.includes(action)) {
-      throw new Error("الإجراء غير صالح");
+      throw new Error("Invalid log request");
     }
 
     if (!validStatuses.includes(status)) {
-      throw new Error("الحالة غير صالحة");
+      throw new Error("Invalid log request");
     }
 
     const log = new Log({ userId, action, status, message });
     await log.save();
-    return log; // إرجاع السجل الذي تم إنشاؤه
+    return log;
   }
 
-  // ✅ جلب السجلات الخاصة بمستخدم معين مع إمكانية التصفية
   static async getUserLogs(
     userId,
     { page = 1, limit = 10, action, status, startDate, endDate }
@@ -40,20 +37,19 @@ class LogService {
     if (action) filter.action = action;
     if (status) filter.status = status;
 
-    // تصفية السجلات بالنطاق الزمني
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) {
         const parsedStartDate = new Date(startDate);
         if (isNaN(parsedStartDate)) {
-          throw new Error("تاريخ البدء غير صالح");
+          throw new Error("Invalid log request");
         }
         filter.timestamp.$gte = parsedStartDate;
       }
       if (endDate) {
         const parsedEndDate = new Date(endDate);
         if (isNaN(parsedEndDate)) {
-          throw new Error("تاريخ الانتهاء غير صالح");
+          throw new Error("Invalid log request");
         }
         filter.timestamp.$lte = parsedEndDate;
       }
@@ -63,11 +59,10 @@ class LogService {
     const limitNumber = parseInt(limit) || 10;
 
     const logs = await Log.find(filter)
-      .sort({ timestamp: -1 }) // ترتيب الأحدث أولًا
+      .sort({ timestamp: -1 })
       .skip((pageNumber - 1) * limitNumber)
       .limit(limitNumber);
 
-    // حساب إجمالي السجلات
     const totalLogs = await Log.countDocuments(filter);
 
     return {

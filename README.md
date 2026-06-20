@@ -1,95 +1,75 @@
 # Insighta Backend API
 
-A scalable and production-oriented backend powering **Insighta**, a mental health monitoring platform designed to support therapist-patient communication, mood tracking, journaling, and real-time interactions.
+Insighta Backend is a Node.js and Express API that provides authentication, profile management, notifications, audit logs, token refresh, email verification, OTP-based password recovery, and password reset workflows backed by MongoDB and Redis.
 
-Built with **Node.js**, **Express.js**, and **TypeScript**, the project focuses on clean architecture, secure authentication, real-time communication, and maintainable API design.
+## Tech Stack
 
-[![Node.js](https://img.shields.io/badge/Node.js-green)](https://nodejs.org/)
-[![Express.js](https://img.shields.io/badge/Express.js-blue)](https://expressjs.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-brightgreen)](https://mongodb.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-blue)](https://typescriptlang.org/)
+- Node.js and Express
+- MongoDB with Mongoose
+- Redis for short-lived verification and refresh-token state
+- JWT authentication
+- bcryptjs password hashing
+- express-validator request validation
+- Helmet, CORS, HPP, and rate limiting for baseline API hardening
+- Winston and Morgan for application and HTTP logging
 
----
+## Project Structure
 
-# Features
+```text
+config/        Runtime configuration, MongoDB, and Redis clients
+controllers/   Request handlers for non-trivial workflows
+middlewares/   Authentication, error handling, and rate limiting
+models/        Mongoose schemas and indexes
+routes/        Express route definitions
+services/      Reusable business operations
+utils/         Shared helpers for email, JWTs, hashing, dates, and responses
+test/          Node test runner coverage for shared utilities
+```
 
-## Core Functionality
+## Getting Started
 
-- Therapist-patient communication system
-- Mood tracking and journaling APIs
-- Secure JWT authentication with role-based access control
-- Real-time chat and notifications using Socket.io
-- RESTful API architecture with clean endpoint structure
-- Centralized error handling and validation
+1. Install dependencies:
 
----
+   ```bash
+   npm install
+   ```
 
-## Performance & Database
+2. Configure environment variables:
 
-- MongoDB integration with Mongoose ODM
-- Optimized database queries and indexing
-- Redis-based caching and session optimization
-- Environment-based configuration for development and production
+   ```bash
+   cp .env.example .env
+   ```
 
----
+   Required runtime configuration can be provided either with `MONGO_URI` or with `MONGO_USER`, `MONGO_PASS`, `MONGO_HOST`, `MONGO_PORT`, and `MONGO_DB`.
 
-## Security & Reliability
+3. Start the API:
 
-- Password hashing using bcrypt
-- Protected routes and access control middleware
-- Rate limiting against abuse and brute-force attacks
-- Secure HTTP headers using Helmet
-- CORS configuration for trusted origins
+   ```bash
+   npm start
+   ```
 
----
+4. Run tests:
 
-## Developer Experience
+   ```bash
+   npm test
+   ```
 
-- Modular and scalable folder structure
-- Service-based architecture
-- Request validation using Joi
-- Logging with Morgan and Winston
-- Hot reload development workflow with Nodemon
+## Key Endpoints
 
----
+- `GET /health` - service health check
+- `POST /api/auth/register` - register a user and send email verification
+- `POST /api/auth/login` - authenticate and issue access and refresh tokens
+- `POST /api/auth/logout` - revoke a refresh token
+- `POST /api/tokens/refresh` - issue a new access token
+- `GET /api/users/me` - get the authenticated user
+- `GET /api/notifications` - list authenticated user notifications
+- `POST /api/password-resets/request` - request a password reset link
+- `POST /api/otp-codes/request` - request an OTP for password recovery
 
-# Tech Stack
+## Production Notes
 
-| Category | Technologies |
-|---|---|
-| Backend | Node.js, Express.js |
-| Language | TypeScript |
-| Database | MongoDB, Mongoose |
-| Authentication | JWT, bcrypt |
-| Real-time | Socket.io |
-| Validation | Joi |
-| Security | Helmet, CORS, express-rate-limit |
-| Caching | Redis |
-| Logging | Morgan, Winston |
-| Dev Tools | Nodemon, dotenv, ESLint |
-
----
-
-# Architecture Highlights
-
-- Layered architecture (Routes → Controllers → Services → Database)
-- Reusable middleware pipeline
-- Centralized error handling
-- Role-based authorization system
-- Real-time event handling with Socket.io
-- Clean separation of concerns for maintainability
-
----
-
-# Project Structure
-
-```bash
-src/
-├── controllers/
-├── services/
-├── routes/
-├── models/
-├── middleware/
-├── config/
-├── utils/
-└── socket/
+- Set `NODE_ENV=production` in deployed environments.
+- Use strong, distinct values for `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`.
+- Restrict `CLIENT_URL` to trusted origins.
+- Configure SMTP credentials with least privilege.
+- Run MongoDB and Redis with authentication and private-network access only.

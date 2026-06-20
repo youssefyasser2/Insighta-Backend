@@ -1,21 +1,18 @@
 {
-  "name": "your-project-name",
+  "name": "insighta-backend",
   "version": "1.0.0",
-  "description": "authentication system using JWT , Express , MongoDB",
+  "description": "Express and MongoDB backend API for Insighta authentication and user workflows",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "concurrently \"npm run start-redis\" \"nodemon server.js\"",
-    "start-redis": "powershell -Command \"Start-Process -NoNewWindow -FilePath redis-server\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon server.js",
+    "test": "node --test"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-async-handler": "^1.2.0",
@@ -39,8 +36,8 @@
     "nodemon": "^3.0.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
-  "author": "youssef",
+  "author": "",
   "license": "MIT"
 }

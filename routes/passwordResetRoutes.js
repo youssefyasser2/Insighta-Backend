@@ -8,53 +8,49 @@ const {
   resetPassword,
 } = require("../controllers/passwordResetController");
 
-// ✅ معدل الطلبات لمنع الهجمات
 const resetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // ⏳ 15 دقيقة
-  max: 5, // 🚫 الحد الأقصى 5 طلبات لكل IP
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message:
-    "تم تجاوز الحد المسموح به لمحاولات إعادة تعيين كلمة المرور. يرجى المحاولة لاحقًا.",
+    "Too many password reset attempts. Please try again later.",
 });
 
-// ✅ طلب إعادة تعيين كلمة المرور
 router.post(
   "/request",
   resetLimiter,
   body("email")
     .trim()
     .isEmail()
-    .withMessage("يرجى إدخال بريد إلكتروني صالح")
+    .withMessage("Invalid input")
     .normalizeEmail(),
   requestPasswordReset
 );
 
-// ✅ التحقق من صلاحية الرمز
 router.get(
   "/verify/:token",
   param("token")
     .isLength({ min: 64, max: 64 })
-    .withMessage("رمز غير صالح - يجب أن يتكون من 64 حرفًا")
+    .withMessage("Invalid input")
     .matches(/^[a-f0-9]{64}$/)
-    .withMessage("الرمز يحتوي على أحرف غير صالحة"),
+    .withMessage("Invalid input"),
   verifyResetToken
 );
 
-// ✅ إعادة تعيين كلمة المرور
 router.post(
   "/reset-password",
   resetLimiter,
-  body("token").notEmpty().withMessage("الرمز مطلوب"),
+  body("Invalid input"),
   body("newPassword")
     .isLength({ min: 8 })
-    .withMessage("كلمة المرور يجب أن تكون على الأقل 8 أحرف")
+    .withMessage("Invalid input")
     .matches(/[A-Z]/)
-    .withMessage("يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل")
+    .withMessage("Invalid input")
     .matches(/[a-z]/)
-    .withMessage("يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل")
+    .withMessage("Invalid input")
     .matches(/[0-9]/)
-    .withMessage("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل")
+    .withMessage("Invalid input")
     .matches(/[@$!%*?&#]/)
-    .withMessage("يجب أن تحتوي كلمة المرور على رمز خاص واحد على الأقل"),
+    .withMessage("Invalid input"),
   resetPassword
 );
 

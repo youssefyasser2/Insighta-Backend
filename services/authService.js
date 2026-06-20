@@ -6,10 +6,9 @@ const tokenService = require("./tokenService");
 require("dotenv").config();
 
 class AuthService {
-  // ✅ تسجيل مستخدم جديد
   static async register(name, email, password) {
     const existingUser = await User.findOne({ email });
-    if (existingUser) throw new Error("البريد الإلكتروني مسجل مسبقًا");
+    if (existingUser) throw new Error("Invalid authentication request");
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ name, email, password: hashedPassword });
@@ -18,15 +17,13 @@ class AuthService {
     return newUser;
   }
 
-  // ✅ تسجيل الدخول وإنشاء Access/Refresh Tokens
   static async login(email, password) {
     const user = await User.findOne({ email });
-    if (!user) throw new Error("البريد الإلكتروني غير صحيح");
+    if (!user) throw new Error("Invalid authentication request");
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new Error("كلمة المرور غير صحيحة");
+    if (!isMatch) throw new Error("Invalid authentication request");
 
-    // توليد JWT Access & Refresh Tokens
     const accessToken = tokenService.generateAccessToken(user._id);
     const refreshToken = tokenService.generateRefreshToken(user._id);
 

@@ -5,7 +5,7 @@ const authMiddleware = require("../middlewares/authMiddleware"); // To protect r
 const asyncHandler = require("express-async-handler"); // For handling async functions
 const winston = require("winston"); // For logging
 
-// ✅ Winston Logger Setup
+//  Winston Logger Setup
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.json(),
@@ -23,13 +23,13 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-// ✅ Logging Middleware
+//  Logging Middleware
 router.use((req, res, next) => {
   logger.info(`${req.method} ${req.url}`);
   next();
 });
 
-// ✅ Get all users (requires authentication)
+//  Get all users (requires authentication)
 router.get(
   "/",
   authMiddleware,
@@ -57,21 +57,21 @@ router.get(
   })
 );
 
-// ✅ Get current user's data (requires authentication)
+//  Get current user's data (requires authentication)
 router.get(
   "/me",
   authMiddleware,
   asyncHandler(async (req, res) => {
     const user = await User.findById(req.user.userId).select("-password");
     if (!user) {
-      return res.status(404).json({ message: "❌ User not found" });
+      return res.status(404).json({ message: " User not found" });
     }
 
     res.json(user);
   })
 );
 
-// ✅ Error Handling Middleware
+//  Error Handling Middleware
 router.use((err, req, res, next) => {
   logger.error(`Unhandled error: ${err.message}`);
   res.status(500).json({
