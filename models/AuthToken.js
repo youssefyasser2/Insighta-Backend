@@ -6,24 +6,23 @@ const AuthTokenSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true, // ✅ تحسين البحث عند الاستعلام عن الـ Tokens
+      index: true,
     },
-    refreshToken: { 
-      type: String, 
-      required: true, 
-      unique: true, // 🛠️ منع التكرارات غير الضرورية
-      select: false, // 🔒 لا يتم جلبه افتراضيًا عند الاستعلام
+    refreshToken: {
+      type: String,
+      required: true,
+      unique: true,
+      select: false,
     },
     expiresAt: {
       type: Date,
       required: true,
-      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // ⏳ انتهاء بعد 30 يومًا
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   },
   { timestamps: true }
 );
 
-// ✅ إضافة فهرس تلقائي لتنظيف التوكنات المنتهية الصلاحية
 AuthTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("AuthToken", AuthTokenSchema);

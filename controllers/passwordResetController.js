@@ -1,24 +1,21 @@
-// 📂 controllers/passwordResetController.js
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const AuthCredential = require("../models/AuthCredential");
 const PasswordReset = require("../models/PasswordReset");
-const nodemailer = require("nodemailer");
+const EmailUtils = require("../utils/emailUtils");
 const validator = require("validator");
 
-// ✅ طلب إعادة تعيين كلمة المرور
 const requestPasswordReset = async (req, res) => {
   try {
-    const { email } = req.body;
-    const cleanedEmail = validator.normalizeEmail(email);
+    const email = validator.normalizeEmail(req.body.email || "");
 
-    if (!validator.isEmail(cleanedEmail)) {
-      return res.status(400).json({ message: "البريد الإلكتروني غير صالح" });
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: "A valid email address is required" });
     }
 
-    const user = await User.findOne({ email: cleanedEmail });
-
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "البريد الإلكتروني غير مسجل" });
+      return res.json({ message: "If the email exists, a reset link has been sent" });
     }
 
     const resetToken = PasswordReset.generateToken();
@@ -27,66 +24,57 @@ const requestPasswordReset = async (req, res) => {
     await PasswordReset.deleteMany({ userId: user._id });
     await PasswordReset.create({ userId: user._id, resetToken, expiresAt });
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+    const resetUrl = `${process.env.FRONTEND_URL || process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    await EmailUtils.sendEmail(
+      user.email,
+      "Password reset",
+      `Use this link to reset your password: ${resetUrl}`
+    );
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: "إعادة تعيين كلمة المرور",
-      text: `لإعادة تعيين كلمة المرور، استخدم هذا الرابط:
-      ${process.env.FRONTEND_URL}/reset-password/${resetToken}`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    res.json({ message: "تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني" });
+    return res.json({ message: "If the email exists, a reset link has been sent" });
   } catch (error) {
-    console.error("Error in requestPasswordReset:", error);
-    res.status(500).json({ message: "خطأ أثناء طلب إعادة التعيين", error: error.message });
+    return res.status(500).json({ message: "Unable to request password reset", error: error.message });
   }
 };
 
-// ✅ التحقق من صلاحية الرمز
 const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.params;
     const validEntry = await PasswordReset.findValidToken(token);
 
     if (!validEntry) {
-      return res.status(400).json({ message: "رمز غير صالح أو منتهي الصلاحية" });
+      return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
-    res.json({ message: "رمز إعادة التعيين صالح" });
+    return res.json({ message: "Reset token is valid" });
   } catch (error) {
-    console.error("Error in verifyResetToken:", error);
-    res.status(500).json({ message: "خطأ أثناء التحقق من الرمز", error: error.message });
+    return res.status(500).json({ message: "Unable to verify reset token", error: error.message });
   }
 };
 
-// ✅ إعادة تعيين كلمة المرور
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     const validEntry = await PasswordReset.findValidToken(token);
 
     if (!validEntry) {
-      return res.status(400).json({ message: "رمز غير صالح أو منتهي الصلاحية" });
+      return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
-    if (!validator.isStrongPassword(newPassword)) {
-      return res.status(400).json({ message: "كلمة المرور ضعيفة. استخدم حروف كبيرة وصغيرة، أرقام، ورموز" });
+    if (!validator.isStrongPassword(newPassword || "")) {
+      return res.status(400).json({ message: "Password does not meet complexity requirements" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.findByIdAndUpdate(validEntry.userId, { password: hashedPassword });
+    await AuthCredential.findOneAndUpdate(
+      { userId: validEntry.userId },
+      { password: hashedPassword }
+    );
     await PasswordReset.deleteMany({ userId: validEntry.userId });
 
-    res.json({ message: "تم إعادة تعيين كلمة المرور بنجاح" });
+    return res.json({ message: "Password reset successfully" });
   } catch (error) {
-    console.error("Error in resetPassword:", error);
-    res.status(500).json({ message: "خطأ أثناء إعادة تعيين كلمة المرور", error: error.message });
+    return res.status(500).json({ message: "Unable to reset password", error: error.message });
   }
 };
 

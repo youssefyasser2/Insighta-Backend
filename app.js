@@ -4,101 +4,63 @@ const cors = require("cors");
 const helmet = require("helmet");
 const hpp = require("hpp");
 const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
-const Redis = require("ioredis");
 const errorHandler = require("./middlewares/errorHandler");
-const connectDB = require("./config/db");
+const apiLimiter = require("./middlewares/rateLimiter");
+const config = require("./config");
+const logger = require("./utils/logger");
 
 const app = express();
 
-
-// ✅ Verify essential environment variables
-const requiredEnvVars = [
-  "JWT_SECRET",
-  "JWT_ACCESS_SECRET",
-  "JWT_REFRESH_SECRET",
-  "CLIENT_URL",
-  "JSON_LIMIT",
-];
-const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
-
-if (missingVars.length) {
-  console.error(
-    `❌ Missing essential environment variables: ${missingVars.join(", ")}`
-  );
-  process.exit(1);
-} else {
-  console.log("✅ All required environment variables are set!");
-}
-
-// 🛡️ Security Middleware
+app.disable("x-powered-by");
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: config.clientUrl,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 200,
+    allowedHeaders: ["Content-Type", "Authorization", "x-refresh-token"],
+    credentials: true,
+    optionsSuccessStatus: 204,
   })
 );
 app.use(helmet());
 app.use(hpp());
-app.use(morgan("combined"));
-app.use(express.json({ limit: process.env.JSON_LIMIT || "10kb" }));
+app.use(morgan(config.nodeEnv === "production" ? "combined" : "dev"));
+app.use(express.json({ limit: config.jsonLimit }));
 app.use(cookieParser());
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per window
-    message: "🚫 Too many requests! Try again later.",
-  })
-);
-app.disable("x-powered-by");
+app.use(apiLimiter);
 
-// 🛢️ Database Connection
-connectDB()
-  .then(() => console.log("✅ Database connected successfully!"))
-  .catch((error) => {
-    console.error("❌ Database connection failed:", error);
-    process.exit(1);
-  });
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
-// 🛣️ Load Routes
 const routes = [
-  { path: "/api/auth", file: "authRoutes" },
-  { path: "/api/users", file: "userRoutes" },
-  { path: "/api/profile", file: "profileRoutes" },
-  { path: "/api/notifications", file: "notificationRoutes" },
-  { path: "/api/logs", file: "logRoutes" },
-  { path: "/api/tokens", file: "tokenRoutes" },
-  { path: "/api/password-resets", file: "passwordResetRoutes" },
-  { path: "/api/otpCode", file: "otpCode" },
-  { path: "/api/protected", file: "protectedRoutes" },
+  ["/api/auth", "authRoutes"],
+  ["/api/users", "userRoutes"],
+  ["/api/profile", "profileRoutes"],
+  ["/api/notifications", "notificationRoutes"],
+  ["/api/logs", "logRoutes"],
+  ["/api/tokens", "tokenRoutes"],
+  ["/api/password-resets", "passwordResetRoutes"],
+  ["/api/otp-codes", "otpCode"],
+  ["/api/protected", "protectedRoutes"],
 ];
 
-routes.forEach(({ path, file }) => {
-  app.use(path, require(`./routes/${file}`));
-  console.log(`📍 Route loaded: ${path}`);
+routes.forEach(([path, moduleName]) => {
+  app.use(path, require(`./routes/${moduleName}`));
+  logger.debug(`Route mounted: ${path}`);
 });
 
-console.log("🔍 Manually testing authRoutes.js...");
-const authRoutes = require("./routes/authRoutes"); // اختبار يدوي للملف
-console.log("✅ authRoutes.js loaded manually!");
-
-// 🚨 Handle Invalid JSON Payloads
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    return res.status(400).json({ message: "🚫 Invalid JSON payload!" });
+    return res.status(400).json({ success: false, message: "Invalid JSON payload" });
   }
-  next();
+  return next(err);
 });
 
-// 🚫 Handle Undefined Routes
 app.use((req, res) => {
-  res.status(404).json({ message: "🚫 Route not found!" });
+  res.status(404).json({ success: false, message: "Route not found" });
 });
 
-// 🛡️ Error Handling Middleware
 app.use(errorHandler);
 
 module.exports = app;

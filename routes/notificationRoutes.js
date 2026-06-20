@@ -5,13 +5,12 @@ const { body, validationResult } = require("express-validator");
 const asyncHandler = require("express-async-handler");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// ✅ Logging Middleware (لتحليل الطلبات في الـ Console)
 router.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
   next();
 });
 
-// ✅ Get all notifications for the user (with pagination)
+//  Get all notifications for the user (with pagination)
 router.get(
   "/",
   authMiddleware,
@@ -20,10 +19,10 @@ router.get(
     const skip = (page - 1) * limit;
 
     const notifications = await Notification.find({ userId: req.user.userId })
-      .sort({ createdAt: -1 }) // فرز حسب الأحدث
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("title message type isRead timestamp"); // 🔥 تحسين الأداء بجلب الحقول المطلوبة فقط
+      .select("title message type isRead timestamp");
 
     const total = await Notification.countDocuments({
       userId: req.user.userId,
@@ -42,7 +41,7 @@ router.get(
   })
 );
 
-// ✅ Mark notifications as read
+//  Mark notifications as read
 router.patch(
   "/read",
   authMiddleware,
@@ -65,7 +64,7 @@ router.patch(
   })
 );
 
-// ✅ Delete all old notifications
+//  Delete all old notifications
 router.delete(
   "/clear",
   authMiddleware,
@@ -76,7 +75,6 @@ router.delete(
   })
 );
 
-// ✅ Create a new notification (مع التحقق من البيانات)
 router.post(
   "/create",
   authMiddleware,
@@ -130,7 +128,6 @@ router.post(
   })
 );
 
-// ✅ Error Handling Middleware (لتنسيق الأخطاء)
 router.use((err, req, res, next) => {
   console.error(`Unhandled error: ${err.message}`);
   res.status(500).json({

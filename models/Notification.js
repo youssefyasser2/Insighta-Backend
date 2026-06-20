@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const autoDeleteAfterDays = 30; // 🗑️ حذف الإشعارات القديمة تلقائيًا بعد 30 يومًا
+const autoDeleteAfterDays = 30;
 
 const NotificationSchema = new mongoose.Schema(
   {
@@ -8,46 +8,45 @@ const NotificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true, // 📌 تحسين البحث حسب المستخدم
+      index: true,
     },
     title: {
       type: String,
-      required: [true, "عنوان الإشعار مطلوب"],
+      required: [true, "This field is required"],
       trim: true,
-      minlength: [3, "يجب أن يكون العنوان على الأقل 3 أحرف"],
-      maxlength: [100, "يجب ألا يزيد العنوان عن 100 حرف"],
+      minlength: [3, "Title must be at least 3 characters"],
+      maxlength: [100, "Title must be at most 100 characters"],
     },
     message: {
       type: String,
-      required: [true, "محتوى الإشعار مطلوب"],
+      required: [true, "This field is required"],
       trim: true,
-      minlength: [5, "يجب أن يكون المحتوى على الأقل 5 أحرف"],
-      maxlength: [500, "يجب ألا يزيد المحتوى عن 500 حرف"],
+      minlength: [5, "Message must be at least 5 characters"],
+      maxlength: [500, "Message must be at most 500 characters"],
     },
     type: {
       type: String,
       required: true,
       enum: {
         values: ["NEW_MESSAGE", "WARNING", "SYSTEM_UPDATE", "ALERT"],
-        message: "نوع الإشعار غير صالح",
+        message: "Invalid notification type",
       },
     },
     isRead: {
       type: Boolean,
       default: false,
-      index: true, // 🔍 تحسين البحث عن الإشعارات الغير مقروءة
+      index: true,
     },
     timestamp: {
       type: Date,
       default: Date.now,
-      index: true, // ⏳ تحسين البحث حسب التاريخ
-      expires: autoDeleteAfterDays * 24 * 60 * 60, // 🗑️ الحذف التلقائي بعد 30 يومًا
+      index: true,
+      expires: autoDeleteAfterDays * 24 * 60 * 60,
     },
   },
   { timestamps: true }
 );
 
-// ✅ تحسين أداء البحث باستخدام `Indexes`
 NotificationSchema.index({ userId: 1, isRead: 1, timestamp: -1 });
 
 module.exports = mongoose.model("Notification", NotificationSchema);

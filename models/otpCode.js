@@ -1,8 +1,8 @@
-// 📂 models/OtpCode.js
+//  models/OtpCode.js
 const mongoose = require("mongoose");
 const crypto = require("crypto");
 
-const otpExpiry = parseInt(process.env.OTP_EXPIRY) || 300; // الافتراضي: 5 دقائق
+const otpExpiry = parseInt(process.env.OTP_EXPIRY) || 300;
 
 const OtpSchema = new mongoose.Schema(
   {
@@ -25,12 +25,10 @@ const OtpSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ إنشاء OTP عشوائي
 OtpSchema.statics.generateOTP = function () {
   return crypto.randomInt(100000, 999999).toString();
 };
 
-// ✅ البحث عن OTP صالح
 OtpSchema.statics.findValidOTP = async function (userId, otp) {
   return await this.findOne({
     userId,
@@ -40,5 +38,3 @@ OtpSchema.statics.findValidOTP = async function (userId, otp) {
 };
 
 module.exports = mongoose.model("OtpCode", OtpSchema);
-
-// 🚀 هذا هو الموديل المسؤول عن الـ OTP! 🔥
