@@ -1,37 +1,43 @@
-// 📂 server.js
 const app = require("./app");
+const config = require("./config");
+const connectDB = require("./config/db");
+const logger = require("./utils/logger");
 
-const PORT = process.env.PORT || 5000;
+let server;
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+const shutdown = async (signal) => {
+  logger.info(`${signal} received. Closing HTTP server.`);
+  if (server) {
+    server.close(() => process.exit(0));
+    return;
+  }
+  process.exit(0);
+};
 
-// 🔥 Handle unhandled promise rejections
-process.on("unhandledRejection", (err, promise) => {
-  console.error("❌ Unhandled Rejection at:", promise, "Reason:", err);
-  server.close(() => process.exit(1));
-});
-
-// 🔥 Handle uncaught exceptions
-process.on("uncaughtException", (err) => {
-  console.error("❌ Uncaught Exception:", err);
-  server.close(() => process.exit(1));
-});
-
-// 👋 Handle graceful shutdown on SIGINT (Ctrl+C)
-process.on("SIGINT", () => {
-  console.log("👋 Server shutting down gracefully...");
-  server.close(() => process.exit(0));
-});
-
-// 🔌 Handle SIGTERM (for containerized environments like Docker)
-process.on("SIGTERM", async () => {
-  console.log("🔌 SIGTERM received. Closing server...");
-  // await closeDBConnection(); // Uncomment if you need to close DB connections
-  server.close(() => {
-    console.log("💤 Server closed. Exiting...");
-    process.exit(0);
+const start = async () => {
+  config.validateConfig();
+  await connectDB();
+  server = app.listen(config.port, () => {
+    logger.info(`Server listening on port ${config.port}`);
   });
+};
+
+process.on("unhandledRejection", (error) => {
+  logger.error("Unhandled promise rejection", { error });
+  if (server) server.close(() => process.exit(1));
+  else process.exit(1);
 });
 
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught exception", { error });
+  if (server) server.close(() => process.exit(1));
+  else process.exit(1);
+});
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+start().catch((error) => {
+  logger.error("Failed to start server", { error });
+  process.exit(1);
+});

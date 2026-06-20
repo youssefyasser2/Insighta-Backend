@@ -12,7 +12,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-// ✅ Winston Logger Setup
+//  Winston Logger Setup
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.json(),
@@ -30,16 +30,16 @@ if (process.env.NODE_ENV !== "production") {
   );
 }
 
-// ✅ Logging Middleware
+//  Logging Middleware
 router.use((req, res, next) => {
   logger.info(`${req.method} ${req.url}`);
   next();
 });
 
-// ✅ Apply authentication middleware to all routes
+//  Apply authentication middleware to all routes
 router.use(authMiddleware);
 
-// ✅ Create a user (Only authenticated users)
+//  Create a user (Only authenticated users)
 router.post(
   "/",
   [
@@ -75,7 +75,7 @@ router.post(
   })
 );
 
-// ✅ Retrieve authenticated user's data
+//  Retrieve authenticated user's data
 router.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -96,7 +96,7 @@ router.get(
   })
 );
 
-// ✅ Update authenticated user's data
+//  Update authenticated user's data
 router.put(
   "/",
   [
@@ -140,7 +140,7 @@ router.put(
   })
 );
 
-// ✅ Delete user by ID
+//  Delete user by ID
 router.delete(
   "/:id",
   asyncHandler(async (req, res) => {
@@ -164,7 +164,7 @@ router.delete(
   })
 );
 
-// ✅ Error Handling Middleware
+//  Error Handling Middleware
 router.use((err, req, res, next) => {
   logger.error(`Unhandled error: ${err.message}`);
   res.status(500).json({

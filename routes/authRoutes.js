@@ -17,21 +17,21 @@ require("dotenv").config();
 
 const router = express.Router();
 
-// 📌 Rate limiting to prevent brute force attacks
+//  Rate limiting to prevent brute force attacks
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 attempts per IP
   message: { message: "Too many login attempts, please try again later." },
 });
 
-// ✅ API Health Check
+//  API Health Check
 router.get("/", (req, res) => {
   res.json({ message: "Auth API is working!" });
 });
 
 const crypto = require("crypto");
 
-// ✅ User Registration
+//  User Registration
 router.post(
   "/register",
   [
@@ -57,32 +57,29 @@ router.post(
 
     const { name, email, password } = req.body;
 
-    // 🔍 Check if user already exists
+    //  Check if user already exists
     if (await User.findOne({ email })) {
       return res
         .status(400)
         .json({ success: false, message: "Email is already registered" });
     }
 
-    // 👤 Create new user
+    //  Create new user
     const newUser = await new User({ name, email }).save();
 
-    // 🔐 Create authentication credentials
+    //  Create authentication credentials
     const authCredential = new AuthCredential({
       userId: newUser._id,
-      password, // سيتم تشفيره تلقائيًا في الـ middleware
+      password,
     });
 
     await authCredential.save();
 
-    // 📩 إرسال رسالة ترحيبية
     await EmailUtils.sendWelcomeEmail(email, name);
 
-    // ✅ توليد رمز تحقق عشوائي من 6 أرقام
     const otp = crypto.randomInt(100000, 999999).toString();
-    await redisClient.set(`verify:${email}`, otp, "EX", 15 * 60); // صلاحية 15 دقيقة
+    await redisClient.set(`verify:${email}`, otp, "EX", 15 * 60);
 
-    // 📩 إرسال رمز التحقق عبر البريد الإلكتروني
     await EmailUtils.sendVerificationEmail(email, otp);
 
     res.status(201).json({
@@ -112,17 +109,15 @@ router.post(
         .json({ success: false, message: "Invalid or expired OTP" });
     }
 
-    // ✅ تحديث حالة التحقق في قاعدة البيانات
     await User.findOneAndUpdate({ email }, { isVerified: true });
 
-    // 🗑️ حذف OTP من Redis بعد الاستخدام
     await redisClient.del(`verify:${email}`);
 
     res.json({ success: true, message: "Email verified successfully!" });
   })
 );
 
-// ✅ User Login
+//  User Login
 router.post(
   "/login",
   loginLimiter,
@@ -142,17 +137,16 @@ router.post(
 
     const { email, password } = req.body;
 
-    // 🔍 Find user
+    //  Find user
     const user = await User.findOne({ email }).lean();
     if (!user) {
-      console.warn(`⚠️ Login failed: User not found - Email: ${email}`);
+      console.warn(` Login failed: User not found - Email: ${email}`);
       return res.status(400).json({
         success: false,
         message: "Invalid email or password",
       });
     }
 
-    // 🛑 التحقق مما إذا كان البريد الإلكتروني قد تم التحقق منه
     if (!user.isVerified) {
       return res.status(403).json({
         success: false,
@@ -165,24 +159,24 @@ router.post(
       .lean();
 
     if (!auth || !auth.password) {
-      console.warn(`⚠️ Login failed: No password found for user ${user._id}`);
+      console.warn(` Login failed: No password found for user ${user._id}`);
       return res.status(400).json({
         success: false,
         message: "Invalid email or password",
       });
     }
 
-    // 🔐 Validate password
+    //  Validate password
     const isPasswordValid = await bcrypt.compare(password, auth.password);
     if (!isPasswordValid) {
-      console.warn(`⚠️ Login failed: Incorrect password - UserID: ${user._id}`);
+      console.warn(` Login failed: Incorrect password - UserID: ${user._id}`);
       return res.status(400).json({
         success: false,
         message: "Invalid email or password",
       });
     }
 
-    // 🔥 Generate tokens
+    //  Generate tokens
     const accessToken = jwt.sign(
       { userId: user._id },
       process.env.JWT_ACCESS_SECRET,
@@ -195,11 +189,11 @@ router.post(
       { expiresIn: process.env.JWT_REFRESH_EXPIRES || "7d" }
     );
 
-    // 🛠️ Store `refreshToken` in Redis
+    //  Store `refreshToken` in Redis
     let redisSuccess = false;
     try {
       if (!redisClient.status || redisClient.status !== "ready") {
-        console.warn("⚠️ Redis is not connected, attempting to reconnect...");
+        console.warn(" Redis is not connected, attempting to reconnect...");
         await redisClient.connect();
       }
 
@@ -209,22 +203,22 @@ router.post(
         "EX",
         7 * 24 * 60 * 60
       );
-      console.log(`✅ Refresh token stored in Redis for user ${user._id}`);
+      console.log(` Refresh token stored in Redis for user ${user._id}`);
       redisSuccess = true;
     } catch (error) {
-      console.error("❌ Redis error:", error);
+      console.error(" Redis error:", error);
     } finally {
       if (!redisSuccess) {
-        console.warn(`⚠️ Refresh token NOT stored for user ${user._id}`);
+        console.warn(` Refresh token NOT stored for user ${user._id}`);
       }
     }
 
-    // 🍪 Set `refreshToken` in cookies
+    //  Set `refreshToken` in cookies
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -235,7 +229,7 @@ router.post(
   })
 );
 
-// ✅ Logout with session verification
+//  Logout with session verification
 router.post(
   "/logout",
   asyncHandler(async (req, res) => {
@@ -243,7 +237,7 @@ router.post(
       const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
-        console.warn("⚠️ Logout failed: No refresh token found in cookies.");
+        console.warn(" Logout failed: No refresh token found in cookies.");
         return res.status(400).json({
           success: false,
           message: "No active session found.",
@@ -253,12 +247,12 @@ router.post(
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
       const userId = decoded.userId;
 
-      // 🔍 Check if the token exists in Redis
+      //  Check if the token exists in Redis
       const storedToken = await redisClient.get(`refreshToken:${userId}`);
 
       if (!storedToken) {
         console.warn(
-          `⚠️ Logout attempted, but no token found for user ${userId}`
+          ` Logout attempted, but no token found for user ${userId}`
         );
         return res.status(400).json({
           success: false,
@@ -266,11 +260,11 @@ router.post(
         });
       }
 
-      // 🗑️ Remove the token from Redis
+      //  Remove the token from Redis
       await redisClient.del(`refreshToken:${userId}`);
-      console.log(`✅ Refresh token deleted for user ${userId}`);
+      console.log(` Refresh token deleted for user ${userId}`);
 
-      // 🚮 Delete all session in redis
+      //  Delete all session in redis
       res.clearCookie("refreshToken", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -282,7 +276,7 @@ router.post(
         message: "Logged out successfully",
       });
     } catch (error) {
-      console.error("❌ Logout error:", error);
+      console.error(" Logout error:", error);
       return res.status(500).json({
         success: false,
         message: "Internal server error",

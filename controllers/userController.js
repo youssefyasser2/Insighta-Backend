@@ -1,11 +1,9 @@
 const User = require("../models/User");
 
-// ✅ جلب بيانات المستخدم
 const getUser = async (userId) => {
-  return await User.findById(userId).select("-password"); // تأكد من إخفاء كلمة المرور
+  return await User.findById(userId).select("-password");
 };
 
-// ✅ إنشاء مستخدم جديد (إذا لم يكن موجودًا)
 const createUser = async (userId, userData) => {
   let user = await User.findById(userId);
   if (!user) {
@@ -18,15 +16,12 @@ const createUser = async (userId, userData) => {
   return user;
 };
 
-// ✅ تحديث بيانات المستخدم
 const updateUser = async (userId, updates) => {
   return await User.findByIdAndUpdate(userId, updates, { new: true }).select("-password");
 };
 
-// ✅ حذف المستخدم
 const deleteUser = async (userId) => {
   return await User.findByIdAndDelete(userId);
 };
 
-// ✅ التصدير
 module.exports = { getUser, createUser, updateUser, deleteUser };

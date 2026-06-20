@@ -72,7 +72,7 @@ const UserSchema = new mongoose.Schema(
         },
       },
     },
-    isVerified: { type: Boolean, default: false }, // ✅ إضافة حالة التحقق
+    isVerified: { type: Boolean, default: false },
     authCredential: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AuthCredential",
@@ -81,7 +81,6 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ تحسين الاستعلامات بإضافة فهرس على البريد الإلكتروني
 UserSchema.index({ email: 1 });
 
 const User = mongoose.model("User", UserSchema);

@@ -1,14 +1,13 @@
 const NotificationService = require("../services/notificationService");
 
 
-// ✅ إنشاء إشعار جديد
 const createNotification = async (req, res) => {
   try {
     const { title, message, type } = req.body;
     const userId = req.user.userId;
 
     if (!title || !message || !type) {
-      return res.status(400).json({ message: "جميع الحقول مطلوبة" });
+      return res.status(400).json({ message: "Invalid notification request" });
     }
 
     const newNotification = await NotificationService.createNotification(
@@ -18,18 +17,17 @@ const createNotification = async (req, res) => {
       type
     );
     res.status(201).json({
-      message: "تم إنشاء الإشعار بنجاح",
+      message: "Invalid notification request",
       notification: newNotification,
     });
   } catch (error) {
     res.status(500).json({
-      message: "خطأ أثناء إنشاء الإشعار",
+      message: "Invalid notification request",
       error: error.message,
     });
   }
 };
 
-// ✅ جلب الإشعارات
 const getNotifications = async (req, res) => {
   try {
     const notifications = await NotificationService.getUserNotifications(
@@ -38,33 +36,31 @@ const getNotifications = async (req, res) => {
     res.json(notifications);
   } catch (error) {
     res.status(500).json({
-      message: "خطأ في جلب الإشعارات",
+      message: "Invalid notification request",
       error: error.message,
     });
   }
 };
 
-// ✅ تمييز جميع الإشعارات كمقروءة
 const markAsRead = async (req, res) => {
   try {
     await NotificationService.markNotificationsAsRead(req.user.userId);
-    res.json({ message: "تم تمييز جميع الإشعارات كمقروءة" });
+    res.json({ message: "Invalid notification request" });
   } catch (error) {
     res.status(500).json({
-      message: "خطأ أثناء تحديث الإشعارات",
+      message: "Invalid notification request",
       error: error.message,
     });
   }
 };
 
-// ✅ حذف جميع الإشعارات
 const clearNotifications = async (req, res) => {
   try {
     await NotificationService.clearAllNotifications(req.user.userId);
-    res.json({ message: "تم حذف جميع الإشعارات بنجاح" });
+    res.json({ message: "Invalid notification request" });
   } catch (error) {
     res.status(500).json({
-      message: "خطأ أثناء حذف الإشعارات",
+      message: "Invalid notification request",
       error: error.message,
     });
   }
